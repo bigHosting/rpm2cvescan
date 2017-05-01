@@ -1,0 +1,89 @@
+rpm2cvescan
+
+rpm2cvescan is an offline rpm cve vulnerability scanner based on
+  * RedHat's RPM to CVE mapping:      rpm-to-cve.xml
+  * RedHat's OVAL infor for RHEL6:    com.redhat.rhsa-RHEL6.xml
+  * RedHat's RHSA to date mapping     rhsamapcpe.txt
+
+How does this work?
+  Based on these 3 files we can create a memory structure associated
+  with an rpm. Each package entry will have an array of vulnerability attributes
+  like cve, cve score, cve2rhsa.
+
+  We will get an inventory of the server by running a command that will list
+  all installed packages:
+      # /bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}\n'
+
+  Finally, we will loop through the memory structure and print info ( package name,
+  cve ID and score) on screen. We also print the same information in csv format.
+
+
+How to run the scanner:
+  * install package dependencies using:
+       # yum -y install perl-XML-Simple
+
+  * download rpmvercmp and compile it
+       # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp ..
+
+  * download these files to be sure you have the latest revision:
+       # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL6.xml"
+       # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/rpm-to-cve.xml"
+       # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/rhsamapcpe.txt"
+
+  * run the perl program:
+       # perl rpm2cvescan.pl
+
+
+
+This tool will only report information about packages used by RedHat. If custom rpms are used,
+e.g. php 7.1 or httpd 2.4 , this tool is not capabale of detecting vulnerabilities simply 
+because rpm-to-cve.xml has info on what's installed by default in RHEL6 ( e.g. php 5.3 )
+
+
+
+
+Output example:
+
+=====  openssh-0:5.3p1-117.el6  =====
+CVE-2015-6563                                               6.2
+CVE-2015-6564                                               4.0
+CVE-2015-5352                                               4.9
+CVE-2016-1908                                               4.9
+
+=====  openssh-clients-0:5.3p1-117.el6  =====
+CVE-2015-6563                                               6.2
+CVE-2015-6564                                               4.0
+CVE-2015-5352                                               4.9
+CVE-2016-1908                                               4.9
+
+=====  sqlite-0:3.6.20-1.el6_7.2  =====
+CVE-2015-3416                                               3.7
+[...]
+
+
+TOTAL_UNIQ_PACKAGES=876, AFFECTED_PACKAGES=67 CVEs=195 HIGHRISK=4
+
+
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-2776,5.0,RHSA-2016:2099 RHSA-2016:1945 RHSA-2016:1944 
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-2848,5.0,RHSA-2016:2099 RHSA-2016:2094 RHSA-2016:2093 
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-8864,5.0,RHSA-2016:2871 RHSA-2016:2615 RHSA-2016:2142 RHSA-2016:2141 
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-9147,0,RHSA-2017:0064 RHSA-2017:0063 RHSA-2017:0062 
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3136,0,RHSA-2017:1105 RHSA-2017:1095 
+VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3137,0,RHSA-2017:1105 RHSA-2017:1095
+[....]
+
+
+TODO:
+
+  * sending rpm package list to a web API using JSON format:
+
+    $ export PACKAGES=$(rpm -qa --queryformat='%{N}-%{epochnum}:%{V}-%{R}\n' | sed 's/^/\"/; s/$/\"/;' | tr '\n' ',' | sed 's/.$//')
+    $ export JSON="{\"os\":\"centos\",\"package\":[ ${PACKAGES} ],\"version\":\"6\"}"
+    $ echo $JSON | /usr/bin/curl -sk -H "Accept: application/json" -X POST -d "@-" "https://my.web.api/v1/"
+
+  * creating the PHP API using Slim2 framework
+
+  * generating a unique URL for each server sending the data
+
+  * creating a web frontend to view each server's vuln data
+
