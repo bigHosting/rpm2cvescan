@@ -1,12 +1,5 @@
 #!/usr/bin/perl
 
-#
-# (c) SecurityGuy 
-#    2017.04.30 - added CVE2RHSA info
-#    2017.04.25 - fixed a bug in reporting
-#    2017.04.22 - initial release
-
-
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -21,6 +14,27 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
+#
+# (c) SecurityGuy
+#
+
+# CHANGELOG:
+#    2017.05.02 - added hostname to csv output
+#               - added cmdline options
+#               - add scanID
+#    2017.05.01 - added CVE2DATE to csv output
+#    2017.04.30 - added CVE2RHSA info
+#    2017.04.25 - fixed a bug in reporting
+#    2017.04.22 - initial release
+
+# USAGE:
+#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug]
+#
+#    perl rpm2cvescan.pl -j
+#
+#
+
+
 use strict;
 use warnings;
 
@@ -31,9 +45,18 @@ if ($@) { die "[*]: $0: ERROR: require module XML::Simple: can't load module $@\
 eval { require utf8; };
 if ($@) { die "[*]: $0: ERROR: require module utf8: can't load module $@\n on CentOS: yum install perl-utf8-all";}
 
+
 use XML::Simple;
 use utf8;
+#use JSON;
 #use Data::Dumper 'Dumper';
+use Getopt::Long;
+#use POSIX qw(strftime);
+#use Digest::MD5 qw(md5 md5_hex md5_base64);
+
+#######################
+#####  FUNCTIONS  #####
+#######################
 
 # 'uniq' an array of elements
 sub uniq {
@@ -59,10 +82,20 @@ sub date_info
 }
 
 
+#############################
+#####  cmdline options  #####
+#############################
+GetOptions( \ my %options,
+        'd|debug'   => \ my $debug,
+        'c|csv'     => \ my $csv,
+        'j|json'    => \ my $json,
+);
+
+
+
 ##########################
 #####  GLOBAL  VARs  #####
 ##########################
-my $debug = 0;
 
 my $xmlrpm;
 my $xmlrhsa;
@@ -77,6 +110,15 @@ my $counter_highrisk = 0;
 binmode(STDIN,  ':encoding(utf8)');
 binmode(STDOUT, ':encoding(utf8)');
 binmode(STDERR, ':encoding(utf8)');
+
+my $hostname = `/bin/hostname -f`;
+$hostname =~ s/^\s+|\s+$//g;
+$hostname =~ s/\n+//g;
+
+# ScanID =  $(date +"%Y%g%d%H%M"|md5sum|cut -c 1-15)
+#my $ScanID = strftime "%Y%g%d%H%M", (localtime(time()) );
+#$ScanID    = md5_hex($ScanID);
+#$ScanID    = substr($ScanID, 0, 15);
 
 
 ####################################
@@ -183,10 +225,15 @@ $xmlrpm=''; # free the mem
 print "[*] $0 INFO: " . &date_info . " rpm2cve    " . scalar (keys %rpm2cve)   . ", counted entries " . $counter_rpm2cve . "\n" if ($debug);
 print "[*] $0 INFO: " . &date_info . " xmlrpmver  " . scalar (keys %xmlrpmver) . "\n" if ($debug);
 
+print "[*] $0 INFO: " . &date_info . " getting distro info\n" if ($debug);
+my $distro = `/bin/rpm --nosignature --nodigest -qf /etc/redhat-release --qf '%{N}-%{V}-%{R}'`;
+
+
 print "[*] $0 INFO: " . &date_info . " getting the list of rpms #1: packageslist\n" if ($debug);
 my $packagelist = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}\n'`;
 # hash format:  'unzip-0:6.0-5.el6'  =>  'unzip',
 my %packages_list = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
+
 
 print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_list\n" if ($debug);
 %packages_list = map {
@@ -199,6 +246,7 @@ print "[*] $0 INFO: " . &date_info . " getting the list of rpms #2: packages_nic
 $packagelist      = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}-%{V}-%{R}\n'`;
 my %packages_nice = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
 
+
 print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_nice\n" if ($debug);
 %packages_nice = map {
        (my $new = $_) =~ s/\.centos//;
@@ -207,6 +255,7 @@ print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages
 
 print "[*] $0 INFO: " . &date_info . " removing .centos from hash values: packages_nice\n" if ($debug);
 foreach ( values %packages_nice ) { s/\.centos//g };
+
 
 print "[*] $0 INFO: " . &date_info . " getting a list of installed packages #3: packages_installed\n" if ($debug);
 # array format: ('...', '....' )
@@ -253,8 +302,37 @@ if ( -f -r "com.redhat.rhsa-RHEL6.xml" )
 $xmlrhsa=''; # free the used mem
 
 
-my %vulnerable_software;
 
+my %CVE2DATE;
+print "[*] $0 INFO: " . &date_info . " loading cve_dates in memory\n\n" if ($debug);
+if ( -f -r "cve_dates.txt" )
+{
+        open(CVEDATES,"<cve_dates.txt");
+        while(<CVEDATES>)
+        {
+                s/CAN/CVE/;
+                next unless (my ($cve,$data) = m/^(CVE-\d{4}-\d+\S*)\s*(.*)/);
+                foreach my $segment (split(/,/,$data))
+                {
+                        # split by '='
+                        my ($name,$value) = split(/=/,$segment);
+
+                        # skip is name is not public as we're interested in public date only
+                        next if ( $name !~ m{public}i);
+
+                        # trim date to 8 chars
+                        $value = substr($value, 0, 8) if (length ($value) > 8);
+
+                        # assign to hash
+                        $CVE2DATE{$cve}=$value;
+                }
+        }
+        close(CVEDATES);
+}
+
+
+
+my %vulnerable_software;
 print "[*] $0 INFO: " . &date_info . " looping through the list of installed packages and comparing rpm versions\n" if ($debug);
 foreach my $pkg ( @packages_installed )
 {
@@ -301,16 +379,21 @@ foreach my $pkg ( @packages_installed )
         }
 }
 
+
+
 # csv format for using grep
-my $csv = '';
+my $csv_output  = '';
+my $json_output = '';
 
 print "[*] $0 INFO: " . &date_info . " printing the list of vulnerable rpms\n\n" if ($debug);
 foreach my $key ( sort keys %vulnerable_software )
 {
         print "\n\n=====  $key  =====\n";
 
+
         foreach my $cve ( sort (&uniq(@{ $vulnerable_software{$key} })) )
         {
+
                     my $score = 0;
                     if ( exists ($cve2score{$cve}))
                     {
@@ -321,19 +404,56 @@ foreach my $key ( sort keys %vulnerable_software )
                     if ( exists ( $CVE2RHSA{$cve}))
                     {
                             $rhsa = $CVE2RHSA{$cve};
+                            $rhsa =~ s/\s+$//;
                     }
 
-                    printf  "%-40s%-20s%-20s\n", $cve, $score, $rhsa;
+                    my $date = "DATE N/A";
+                    if ( exists ( $CVE2DATE{$cve}))
+                    {
+                            $date = $CVE2DATE{$cve};
+                    }
+
+                    printf  "%-40s%-20s\n", $cve, $score;
                     $counter_cve++;
                     $counter_highrisk++ if ($score > 7);
-                    $csv .= sprintf ("VULN,%s,%s,%s,%s\n", $key, $cve, $score, $rhsa);
+
+                    if ( $csv )
+                    {
+                            $csv_output .= sprintf ("VULN,%s,%s,%s,%s,%s,%s,%s\n", $key, $cve, $score, $rhsa, $date, $hostname, $distro);
+                    }
+
+                    if ($json)
+                    {
+                            my %json_data  = ();
+                            # build json data
+                            $json_data{hService}        = "VULNS";
+                            $json_data{vulnPackage}     = $key;
+                            $json_data{ScannedHostName} = $hostname;
+                            $json_data{vulnDistro}      = $distro;
+                            $json_data{vulnCVE}         = $cve;
+                            $json_data{vulnCVEDate}     = $date;
+                            $json_data{vulnSrcRHSA}     = $rhsa;
+                            $json_data{vulnScore}       = $score;
+                            #$json_data{ScanID}          = $ScanID;
+
+                            #$json_output .= encode_json (\%json) . "\n";
+                            $json_output .=  "{" . join (", ", map {join (":", '"' . "$_" . '"', '"' . $json_data{$_} . '"')} sort keys %json_data) . "}\n";
+                    }
         }
 }
 
 print "\n\nTOTAL_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . $counter_pkg . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
 
 
-# CSV format if we have at least 5 bytes
-print $csv if ( length ($csv) > 5 );
-print "\n";
+# CSV
+if ( ( $csv ) && ( length ($csv_output) > 5 ) )
+{
+        print $csv_output . "\n";
+}
+
+# JSON
+if ( ( $json ) && ( length ($json_output) > 5 ) )
+{
+        print $json_output;
+}
 
