@@ -35,7 +35,7 @@ How to run the scanner:
   * run the perl program:
        # perl rpm2cvescan.pl [ --json ]  [ --csv ]  [ --debug ]  [--exclude=ntp --exclude=kernel-firmware]
 
-
+  * clone rpmvercmp repo and recompile rpmvercmp.c from https://github.com/basinilya/rpmvercmp
 
 This tool will only report information about packages used by RedHat. If custom rpms are used,
 e.g. php 7.1 or httpd 2.4 , this tool is not capabale of detecting vulnerabilities simply 
