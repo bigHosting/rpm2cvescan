@@ -1,13 +1,13 @@
 rpm2cvescan
 
-rpm2cvescan is an offline rpm cve vulnerability scanner based on
+rpm2cvescan is an offline EL6/CentOS6 rpm cve vulnerability scanner based on
   * RedHat's RPM to CVE mapping:      rpm-to-cve.xml
   * RedHat's OVAL infor for RHEL6:    com.redhat.rhsa-RHEL6.xml
   * RedHat's RHSA to date mapping     rhsamapcpe.txt
   * RedHat's CVE 2 DATE               cve_dates.txt
 
 How does this work?
-  Based on these 3 files we can create a memory structure associated
+  Based on above files we can create a memory structure associated
   with an rpm. Each package entry will have an array of vulnerability attributes
   like cve, cve score, cve2rhsa.
 
@@ -33,7 +33,7 @@ How to run the scanner:
        # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/cve_dates.txt"
 
   * run the perl program:
-       # perl rpm2cvescan.pl [ --json ]  [ --csv ]  [ --debug ]
+       # perl rpm2cvescan.pl [ --json ]  [ --csv ]  [ --debug ]  [--exclude=ntp --exclude=kernel-firmware]
 
 
 

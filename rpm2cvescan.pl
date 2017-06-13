@@ -19,6 +19,7 @@
 #
 
 # CHANGELOG:
+#    2017.06.12 - added exclude list
 #    2017.05.02 - added hostname to csv output
 #               - added cmdline options
 #               - add scanID
@@ -28,7 +29,7 @@
 #    2017.04.22 - initial release
 
 # USAGE:
-#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug]
+#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug] [--exclude=ntp  --exclude=kernel-firmware]
 #
 #    perl rpm2cvescan.pl -j
 #
@@ -89,6 +90,7 @@ GetOptions( \ my %options,
         'd|debug'   => \ my $debug,
         'c|csv'     => \ my $csv,
         'j|json'    => \ my $json,
+        'x|exclude=s'    => \ my @excludes,
 );
 
 
@@ -336,6 +338,21 @@ my %vulnerable_software;
 print "[*] $0 INFO: " . &date_info . " looping through the list of installed packages and comparing rpm versions\n" if ($debug);
 foreach my $pkg ( @packages_installed )
 {
+        my $skip = 0;
+        if ( @excludes )
+        {
+                foreach my $exclude_rpm ( @excludes )
+                {
+                        if ( $pkg =~ m/$exclude_rpm/i )
+                        {
+                                $skip = 1;
+                                last;
+                        }
+                }
+        }
+
+        next if ($skip == '1');
+
         # split by ':'
         my ($ne, $vr) = split( /:/, $pkg );
 
