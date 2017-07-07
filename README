@@ -1,10 +1,10 @@
 rpm2cvescan
 
-rpm2cvescan is an offline EL6/CentOS6 rpm cve vulnerability scanner based on
-  * RedHat's RPM to CVE mapping:      rpm-to-cve.xml
-  * RedHat's OVAL infor for RHEL6:    com.redhat.rhsa-RHEL6.xml
-  * RedHat's RHSA to date mapping     rhsamapcpe.txt
-  * RedHat's CVE 2 DATE               cve_dates.txt
+rpm2cvescan is an offline CentOS 5/6/7 rpm cve vulnerability scanner based on
+  * RedHat's RPM to CVE mapping:         rpm-to-cve.xml
+  * RedHat's OVAL infor for RHEL5,6,7:   com.redhat.rhsa-RHEL5.xml, com.redhat.rhsa-RHEL6.xml, com.redhat.rhsa-RHEL7.xml
+  * RedHat's RHSA to date mapping        rhsamapcpe.txt
+  * RedHat's CVE 2 DATE                  cve_dates.txt
 
 How does this work?
   Based on above files we can create a memory structure associated
@@ -24,22 +24,26 @@ How to run the scanner:
        # yum -y install perl-XML-Simple
 
   * download rpmvercmp and compile it
-       # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp ..
+       el6 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp rpmvercmp.el6 ; cp rpmvercmp.el6 ..; cd ..
+       el7 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc /usr/lib64/librpm.so.3 rpmvercmp.o -o rpmvercmp.el7; cp rpmvercmp.el7 ..; cd ..
 
   * download these files to be sure you have the latest revision:
+       # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL5.xml"
        # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL6.xml"
+       # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL7.xml"
        # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/rpm-to-cve.xml"
        # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/rhsamapcpe.txt"
        # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/cve_dates.txt"
 
   * run the perl program:
-       # perl rpm2cvescan.pl [ --json ]  [ --csv ]  [ --debug ]  [--exclude=ntp --exclude=kernel-firmware]
+       # perl rpm2cvescan.pl
 
-  * clone rpmvercmp repo and recompile rpmvercmp.c from https://github.com/basinilya/rpmvercmp
+
 
 This tool will only report information about packages used by RedHat. If custom rpms are used,
-e.g. php 7.1 or httpd 2.4 , this tool is not capabale of detecting vulnerabilities simply 
-because rpm-to-cve.xml has info on what's installed by default in RHEL6 ( e.g. php 5.3 )
+e.g. php 7.1 or httpd 2.4 , this tool is not capabale of detecting vulnerabilities simply
+because rpm-to-cve.xml has info on what's installed by default on your distro version,
+e.g. php 5.3 for EL6.
 
 
 
@@ -72,12 +76,8 @@ VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-8864,5.0,RHSA-2016:2871 RHSA-2016:261
 VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-9147,0,RHSA-2017:0064 RHSA-2017:0063 RHSA-2017:0062,20170111,web203c0
 VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3136,0,RHSA-2017:1105 RHSA-2017:1095,20170412,web203c0
 VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3137,0,RHSA-2017:1105 RHSA-2017:1095,20170412,web203c0
-
 [....]
 
-{"ScannedHostName":"mal0c0.domain.com", "hService":"VULNS", "vulnCVE":"CVE-2017-6074", "vulnCVEDate":"20170222", "vulnDistro":"centos-release-6-9.el6.12.3", "vulnPackage":"kernel-2.6.32-642.3.1.el6", "vulnScore":"0", "vulnSrcRHSA":"RHSA-2017:0932 RHSA-2017:0501 RHSA-2017:0403 RHSA-2017:0366 RHSA-2017:0365 RHSA-2017:0347 RHSA-2017:0346 RHSA-2017:0345 RHSA-2017:0324 RHSA-2017:0323 RHSA-2017:0316 RHSA-2017:0295 RHSA-2017:0294 RHSA-2017:0293"}
-
-{"ScannedHostName":"mal0c0.domain.com", "hService":"VULNS", "vulnCVE":"CVE-2016-7910", "vulnCVEDate":"20160804", "vulnDistro":"centos-release-6-9.el6.12.3", "vulnPackage":"kernel-2.6.32-696.el6", "vulnScore":"6.2", "vulnSrcRHSA":"RHSA-2017:0892"}
 
 TODO:
 

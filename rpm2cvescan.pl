@@ -19,6 +19,7 @@
 #
 
 # CHANGELOG:
+#    2017.07.07 - added support for el5 & el7
 #    2017.06.12 - added exclude list
 #    2017.05.02 - added hostname to csv output
 #               - added cmdline options
@@ -29,9 +30,10 @@
 #    2017.04.22 - initial release
 
 # USAGE:
-#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug] [--exclude=ntp  --exclude=kernel-firmware]
+#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug]
 #
 #    perl rpm2cvescan.pl -j
+#    perl rpm2cvescan.pl --debug --json --exclude=kernel --exclude=php
 #
 #
 
@@ -54,6 +56,8 @@ use utf8;
 use Getopt::Long;
 #use POSIX qw(strftime);
 #use Digest::MD5 qw(md5 md5_hex md5_base64);
+
+$| = 1;
 
 #######################
 #####  FUNCTIONS  #####
@@ -116,6 +120,38 @@ binmode(STDERR, ':encoding(utf8)');
 my $hostname = `/bin/hostname -f`;
 $hostname =~ s/^\s+|\s+$//g;
 $hostname =~ s/\n+//g;
+
+##########################
+#####  supported OS  #####
+##########################
+my %supported = (
+        'el5' => 'com.redhat.rhsa-RHEL5.xml',
+        'el6' => 'com.redhat.rhsa-RHEL6.xml',
+        'el7' => 'com.redhat.rhsa-RHEL7.xml',
+);
+
+print "[*] $0 INFO: " . &date_info . " getting distro info\n" if ($debug);
+my $distro = `/bin/rpm --nosignature --nodigest -qf /etc/redhat-release --qf '%{N}-%{V}-%{R}'`;
+
+my $cve2score_input = 'NA';
+my $distro_version  = 'el6';
+
+foreach my $entry (keys %supported)
+{
+        if ( $distro =~ m/$entry/i)
+        {
+                $cve2score_input = $supported{$entry};
+                $distro_version  = $entry;
+        }
+}
+
+
+if ($cve2score_input eq 'NA')
+{
+        print "[*] $0 ERROR: OS not supported\n";
+        exit(1);
+}
+
 
 # ScanID =  $(date +"%Y%g%d%H%M"|md5sum|cut -c 1-15)
 #my $ScanID = strftime "%Y%g%d%H%M", (localtime(time()) );
@@ -185,8 +221,8 @@ foreach my $entry ( sort @{$xmlrpm->{'rpm'}} )
         #        print Dumper (\$rpm2cve{$rpm_name});
         #}
 
-        # skip el7 packages that might be reported as newer than el6
-        next if ($rpm_name =~ /el7/);
+        # only look at our distro version
+        next if ($rpm_name !~ /$distro_version/);
 
         my @advisory;
         if ( (defined ($entry->{cve})) && (scalar(@{$entry->{'cve'}}) > 0) )
@@ -227,8 +263,6 @@ $xmlrpm=''; # free the mem
 print "[*] $0 INFO: " . &date_info . " rpm2cve    " . scalar (keys %rpm2cve)   . ", counted entries " . $counter_rpm2cve . "\n" if ($debug);
 print "[*] $0 INFO: " . &date_info . " xmlrpmver  " . scalar (keys %xmlrpmver) . "\n" if ($debug);
 
-print "[*] $0 INFO: " . &date_info . " getting distro info\n" if ($debug);
-my $distro = `/bin/rpm --nosignature --nodigest -qf /etc/redhat-release --qf '%{N}-%{V}-%{R}'`;
 
 
 print "[*] $0 INFO: " . &date_info . " getting the list of rpms #1: packageslist\n" if ($debug);
@@ -268,17 +302,18 @@ my @packages_installed = keys %packages_list;
 #################################################
 #####  read from com.redhat.rhsa-RHEL6.xml  #####
 #################################################
+
 my %cve2score;
-if ( -f -r "com.redhat.rhsa-RHEL6.xml" )
+if ( -f -r $cve2score_input )
 {
-        print "[*] $0 INFO: " . &date_info . " loading com.redhat.rhsa-RHEL.xml\n" if ($debug);
+        print "[*] $0 INFO: " . &date_info . " $cve2score_input\n" if ($debug);
         # Open RHSA xml, force cve to be array
-        if (not($xmlrhsa = XMLin('com.redhat.rhsa-RHEL6.xml',ForceArray => [  'cve' ])))
+        if (not($xmlrhsa = XMLin($cve2score_input,ForceArray => [  'cve' ])))
         {
-                die ("[*]: $0: ERROR: XMLin: Could not parse file: $!\n");
+                die ("[*]: $0: ERROR: XMLin: Could not parse $cve2score_input file: $!\n");
         }
 
-        print "[*] $0 INFO: " . &date_info . " parsing com.redhat.rhsa-RHEL.xml\n" if ($debug);
+        print "[*] $0 INFO: " . &date_info . " parsing $cve2score_input\n" if ($debug);
         foreach my $rhsa ( sort keys %{ $xmlrhsa->{definitions}->{definition} } )
         {
                 # define the entry
@@ -304,37 +339,8 @@ if ( -f -r "com.redhat.rhsa-RHEL6.xml" )
 $xmlrhsa=''; # free the used mem
 
 
-
-my %CVE2DATE;
-print "[*] $0 INFO: " . &date_info . " loading cve_dates in memory\n\n" if ($debug);
-if ( -f -r "cve_dates.txt" )
-{
-        open(CVEDATES,"<cve_dates.txt");
-        while(<CVEDATES>)
-        {
-                s/CAN/CVE/;
-                next unless (my ($cve,$data) = m/^(CVE-\d{4}-\d+\S*)\s*(.*)/);
-                foreach my $segment (split(/,/,$data))
-                {
-                        # split by '='
-                        my ($name,$value) = split(/=/,$segment);
-
-                        # skip is name is not public as we're interested in public date only
-                        next if ( $name !~ m{public}i);
-
-                        # trim date to 8 chars
-                        $value = substr($value, 0, 8) if (length ($value) > 8);
-
-                        # assign to hash
-                        $CVE2DATE{$cve}=$value;
-                }
-        }
-        close(CVEDATES);
-}
-
-
-
 my %vulnerable_software;
+
 print "[*] $0 INFO: " . &date_info . " looping through the list of installed packages and comparing rpm versions\n" if ($debug);
 foreach my $pkg ( @packages_installed )
 {
@@ -352,7 +358,6 @@ foreach my $pkg ( @packages_installed )
         }
 
         next if ($skip == '1');
-
         # split by ':'
         my ($ne, $vr) = split( /:/, $pkg );
 
@@ -367,7 +372,7 @@ foreach my $pkg ( @packages_installed )
                         # skip if we compare the same version
                         next if ( $pkg_v1 eq $pkg_v2 );
 
-                        my $cmd = sprintf ("./rpmvercmp %s %s '>'", $pkg_v1, $pkg_v2 );
+                        my $cmd = sprintf ("./rpmvercmp.%s %s %s '>'", $distro_version, $pkg_v1, $pkg_v2 );
                         system ($cmd);
                         #print "Command returned: " . $? . "\n";
                         if ($? == 256)
@@ -397,6 +402,33 @@ foreach my $pkg ( @packages_installed )
 }
 
 
+my %CVE2DATE;
+
+print "[*] $0 INFO: " . &date_info . " loading cve_dates in memory\n\n" if ($debug);
+if ( -f -r "cve_dates.txt" )
+{
+        open(CVEDATES,"<cve_dates.txt");
+        while(<CVEDATES>)
+        {
+                s/CAN/CVE/;
+                next unless (my ($cve,$data) = m/^(CVE-\d{4}-\d+\S*)\s*(.*)/);
+                foreach my $segment (split(/,/,$data))
+                {
+                        # split by '='
+                        my ($name,$value) = split(/=/,$segment);
+
+                        # skip is name is not public as we're interested in public date only
+                        next if ( $name !~ m{public}i);
+
+                        # trim date to 8 chars
+                        $value = substr($value, 0, 8) if (length ($value) > 8);
+
+                        # assign to hash
+                        $CVE2DATE{$cve}=$value;
+                }
+        }
+        close(CVEDATES);
+}
 
 # csv format for using grep
 my $csv_output  = '';
@@ -406,7 +438,6 @@ print "[*] $0 INFO: " . &date_info . " printing the list of vulnerable rpms\n\n"
 foreach my $key ( sort keys %vulnerable_software )
 {
         print "\n\n=====  $key  =====\n";
-
 
         foreach my $cve ( sort (&uniq(@{ $vulnerable_software{$key} })) )
         {
