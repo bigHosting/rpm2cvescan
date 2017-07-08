@@ -24,8 +24,9 @@ How to run the scanner:
        # yum -y install perl-XML-Simple
 
   * download rpmvercmp and compile it
+       el5 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cc /usr/lib64/librpm-4.4.so rpmvercmp.o   -o rpmvercmp  ; cp rpmvercmp rpmvercmp.el5 ; cp rpmvercmp.el5 ..; cd ..
        el6 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp rpmvercmp.el6 ; cp rpmvercmp.el6 ..; cd ..
-       el7 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc /usr/lib64/librpm.so.3 rpmvercmp.o -o rpmvercmp.el7; cp rpmvercmp.el7 ..; cd ..
+       el7 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc    -c -o rpmvercmp.o rpmvercmp.c; cc /usr/lib64/librpm.so.3 rpmvercmp.o -o rpmvercmp.el7; cp rpmvercmp.el7 ..; cd ..
 
   * download these files to be sure you have the latest revision:
        # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL5.xml"
