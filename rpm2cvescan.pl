@@ -52,7 +52,7 @@ if ($@) { die "[*]: $0: ERROR: require module utf8: can't load module $@\n on Ce
 use XML::Simple;
 use utf8;
 #use JSON;
-#use Data::Dumper 'Dumper';
+use Data::Dumper 'Dumper';
 use Getopt::Long;
 #use POSIX qw(strftime);
 #use Digest::MD5 qw(md5 md5_hex md5_base64);
@@ -86,6 +86,19 @@ sub date_info
         return ($datestamp);
 }
 
+#  my @array = file2array("/proc/version");
+sub file2array
+{
+    (my $filename) = @_; 
+    my @lines = ( 'unknown' );
+    if ( -e -r $filename )
+    {
+            open FILE,"$filename";
+            @lines = <FILE>;
+            close FILE;
+    }
+    return @lines;
+}
 
 #############################
 #####  cmdline options  #####
@@ -128,6 +141,17 @@ my %supported = (
         'el5' => 'com.redhat.rhsa-RHEL5.xml',
         'el6' => 'com.redhat.rhsa-RHEL6.xml',
         'el7' => 'com.redhat.rhsa-RHEL7.xml',
+);
+
+# running kernel detection
+my $kernel    = join '', file2array("/proc/version");
+(undef, undef, $kernel) = split(/\s+/,$kernel);
+$kernel =~ s/\.x86_64//g;
+
+my $kernel_format = "kernel-0:" . $kernel;
+my %kernel_version = (
+       one => " kernel",
+       two => " kernel-" . $kernel,
 );
 
 print "[*] $0 INFO: " . &date_info . " getting distro info\n" if ($debug);
@@ -269,7 +293,15 @@ print "[*] $0 INFO: " . &date_info . " getting the list of rpms #1: packageslist
 my $packagelist = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}\n'`;
 # hash format:  'unzip-0:6.0-5.el6'  =>  'unzip',
 my %packages_list = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
-
+print "[*] $0 INFO: " . &date_info . " removing ^kernel* from packages_list\n";
+# remove ^kernel* from the package list
+foreach my $p ( keys %packages_list )
+{
+        delete $packages_list{$p} if ( $p =~ m/^kernel/ );
+}
+# add kernel version
+$packages_list{$kernel_format} = $kernel_version{one};
+print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_list: key " . $kernel_format . " value " . $kernel_version{one} . "\n";
 
 print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_list\n" if ($debug);
 %packages_list = map {
@@ -281,7 +313,15 @@ print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages
 print "[*] $0 INFO: " . &date_info . " getting the list of rpms #2: packages_nice\n" if ($debug);
 $packagelist      = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}-%{V}-%{R}\n'`;
 my %packages_nice = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
-
+print "[*] $0 INFO: " . &date_info . " removing ^kernel* from packages_nice\n";
+# remove ^kernel* from the package list
+foreach my $p ( keys %packages_nice )
+{
+        delete $packages_nice{$p} if ( $p =~ m/^kernel/ );
+}
+# add kernel version
+$packages_nice{$kernel_format} = $kernel_version{two};
+print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_nice: key " . $kernel_format . " value " . $kernel_version{two} . "\n";
 
 print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_nice\n" if ($debug);
 %packages_nice = map {
@@ -300,7 +340,7 @@ my @packages_installed = keys %packages_list;
 
 
 #################################################
-#####  read from com.redhat.rhsa-RHEL6.xml  #####
+#####  read from com.redhat.rhsa-RHELX.xml  #####
 #################################################
 
 my %cve2score;
