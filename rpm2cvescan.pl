@@ -19,6 +19,7 @@
 #
 
 # CHANGELOG:
+#    2017.08.01 - added support showing only one package ( --show-only=openssl )
 #    2017.07.07 - added support for el5 & el7
 #    2017.06.12 - added exclude list
 #    2017.05.02 - added hostname to csv output
@@ -30,10 +31,11 @@
 #    2017.04.22 - initial release
 
 # USAGE:
-#    perl rpm2cvescan.pl  [--json]  [--csv]  [--debug]
+#    perl $0  [--json]  [--csv]  [--debug]
 #
-#    perl rpm2cvescan.pl -j
-#    perl rpm2cvescan.pl --debug --json --exclude=kernel --exclude=php
+#    perl $0 -j
+#    perl $0 --debug --json --exclude=bash --exclude=php
+#    perl $0 --debug --json --show-only=openssl
 #
 #
 
@@ -52,7 +54,7 @@ if ($@) { die "[*]: $0: ERROR: require module utf8: can't load module $@\n on Ce
 use XML::Simple;
 use utf8;
 #use JSON;
-use Data::Dumper 'Dumper';
+#use Data::Dumper 'Dumper';
 use Getopt::Long;
 #use POSIX qw(strftime);
 #use Digest::MD5 qw(md5 md5_hex md5_base64);
@@ -107,6 +109,7 @@ GetOptions( \ my %options,
         'd|debug'   => \ my $debug,
         'c|csv'     => \ my $csv,
         'j|json'    => \ my $json,
+        's|show-only=s'  => \ my $showonly,
         'x|exclude=s'    => \ my @excludes,
 );
 
@@ -190,7 +193,7 @@ my %CVE2RHSA = ();
 my $rhsamapcpe = "rhsamapcpe.txt";
 if ( -f -r $rhsamapcpe)
 {
-        print "\n[*] $0 INFO: " . &date_info . " reading from rhsamapcpe.txt\n" if ($debug);
+        print "\n[*] $0 INFO: " . &date_info . " reading from $rhsamapcpe\n" if ($debug);
         open(RHSA2CVE,"<$rhsamapcpe");
         foreach my $line (<RHSA2CVE>)
         {
@@ -208,14 +211,15 @@ if ( -f -r $rhsamapcpe)
 #################################
 #####  read rpm-to-cve.xml  #####
 #################################
-if ( ! ( -f -r "rpm-to-cve.xml" ) )
+my $r = "rpm-to-cve.xml";
+if ( ! ( -f -r $r ) )
 {
-        die ("[*] $0: ERROR: cannot open file $!");
+        die ("[*] $0: ERROR: cannot open file $r $!");
 }
 
-print "\n[*] $0 INFO: " . &date_info . " reading from rpm-to-cve.xml\n" if ($debug);
+print "\n[*] $0 INFO: " . &date_info . " reading from $r\n" if ($debug);
 # /usr/bin/wget -N "https://www.redhat.com/security/data/metrics/rpm-to-cve.xml"
-if (not($xmlrpm = XMLin( 'rpm-to-cve.xml', ForceArray => ['cve'] )))
+if (not($xmlrpm = XMLin( $r, ForceArray => ['cve'] )))
 {
         die ("[*]: $0: ERROR: XMLin: Could not parse file: $!\n");
 }
@@ -384,6 +388,11 @@ my %vulnerable_software;
 print "[*] $0 INFO: " . &date_info . " looping through the list of installed packages and comparing rpm versions\n" if ($debug);
 foreach my $pkg ( @packages_installed )
 {
+        if ($showonly)
+        {
+                next if ( $pkg !~ m/$showonly/i );
+        }
+
         my $skip = 0;
         if ( @excludes )
         {
