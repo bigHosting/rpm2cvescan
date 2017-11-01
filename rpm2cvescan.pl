@@ -129,7 +129,7 @@ my $xmlrhsa;
 
 # stats
 my $counter_cve      = 0;
-my $counter_pkg      = 0;
+#my $counter_pkg      = 0;
 my $counter_highrisk = 0;
 
 
@@ -441,7 +441,7 @@ foreach my $pkg ( @packages_installed )
                         if ($? == 256)
                         {
                                 #print "\n=====  $pkg_v1  (upgrade to $pkg_v2) =====\n";
-                                $counter_pkg++;
+                                #$counter_pkg++;
 
                                 # we need this to pull vulns fixed in the new version that affects older one
                                 my $new = $ne . ":" . $version;
@@ -553,7 +553,7 @@ foreach my $key ( sort keys %vulnerable_software )
         }
 }
 
-print "\n\nTOTAL_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . $counter_pkg . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
+print "\n\nTOTAL_SCANNED_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . scalar (keys %vulnerable_software) . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
 
 
 # CSV
