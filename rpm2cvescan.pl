@@ -129,7 +129,7 @@ my $xmlrhsa;
 
 # stats
 my $counter_cve      = 0;
-#my $counter_pkg      = 0;
+my $counter_pkg      = 0;
 my $counter_highrisk = 0;
 
 
@@ -308,6 +308,8 @@ print "[*] $0 INFO: " . &date_info . " getting the list of rpms #1: packageslist
 my $packagelist = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}\n'`;
 # hash format:  'unzip-0:6.0-5.el6'  =>  'unzip',
 my %packages_list = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
+$counter_pkg = scalar(keys%packages_list);
+
 print "[*] $0 INFO: " . &date_info . " removing rpms with '^kernel*' and '.centos' name from packages_list\n";
 # remove ^kernel* from the package list
 foreach my $p ( keys %packages_list )
@@ -553,7 +555,7 @@ foreach my $key ( sort keys %vulnerable_software )
         }
 }
 
-print "\n\nTOTAL_SCANNED_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . scalar (keys %vulnerable_software) . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
+print "\n\nTOTAL_PACKAHES=$counter_pkg, TOTAL_SCANNED_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . scalar (keys %vulnerable_software) . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
 
 
 # CSV
