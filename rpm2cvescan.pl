@@ -310,7 +310,7 @@ my $packagelist = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:
 my %packages_list = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
 $counter_pkg = scalar(keys%packages_list);
 
-print "[*] $0 INFO: " . &date_info . " removing rpms with '^kernel*' and '.centos' name from packages_list\n";
+print "[*] $0 INFO: " . &date_info . " removing rpms with '^kernel*' and '.centos' name from packages_list\n" if ($debug);
 # remove ^kernel* from the package list
 foreach my $p ( keys %packages_list )
 {
@@ -319,7 +319,7 @@ foreach my $p ( keys %packages_list )
 }
 # add kernel version
 $packages_list{$kernel_format} = $kernel_version{one};
-print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_list: key " . $kernel_format . " value " . $kernel_version{one} . "\n";
+print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_list: key " . $kernel_format . " value " . $kernel_version{one} . "\n" if ($debug);
 
 #print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_list\n" if ($debug);
 #%packages_list = map {
@@ -332,7 +332,7 @@ print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_list: key 
 print "[*] $0 INFO: " . &date_info . " getting the list of rpms #2: packages_nice\n" if ($debug);
 $packagelist      = `/bin/rpm --nosignature --nodigest -qa --qf '%{N}-%{epochnum}:%{V}-%{R} %{N}-%{V}-%{R}\n'`;
 my %packages_nice = map  { split(/\s+/, $_, 2) } grep { m/\s+/ } split(/\n/, $packagelist);
-print "[*] $0 INFO: " . &date_info . " removing rpms with '^kernel*' and '.centos' name from packages_nice\n";
+print "[*] $0 INFO: " . &date_info . " removing rpms with '^kernel*' and '.centos' name from packages_nice\n" if ($debug);
 # remove ^kernel* from the package list
 foreach my $p ( keys %packages_nice )
 {
@@ -341,7 +341,7 @@ foreach my $p ( keys %packages_nice )
 }
 # add kernel version
 $packages_nice{$kernel_format} = $kernel_version{two};
-print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_nice: key " . $kernel_format . " value " . $kernel_version{two} . "\n";
+print "[*] $0 INFO: " . &date_info . " adding kernel info to packages_nice: key " . $kernel_format . " value " . $kernel_version{two} . "\n" if ($debug);
 
 #print "[*] $0 INFO: " . &date_info . " removing .centos from hash keys: packages_nice\n" if ($debug);
 #%packages_nice = map {
