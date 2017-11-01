@@ -555,7 +555,7 @@ foreach my $key ( sort keys %vulnerable_software )
         }
 }
 
-print "\n\nTOTAL_PACKAHES=$counter_pkg, TOTAL_SCANNED_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . scalar (keys %vulnerable_software) . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
+print "\n\nTOTAL_PACKAGES=$counter_pkg, TOTAL_SCANNED_UNIQ_PACKAGES=" . scalar(@packages_installed) . ", AFFECTED_PACKAGES=" . scalar (keys %vulnerable_software) . " CVEs=" . $counter_cve . " HIGHRISK=" . $counter_highrisk . "\n\n";
 
 
 # CSV
