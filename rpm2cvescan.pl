@@ -541,7 +541,7 @@ foreach my $key ( sort keys %vulnerable_software )
 
                     printf  "%-40s%-20s\n", $cve, $score;
                     $counter_cve++;
-                    $counter_highrisk++ if ($score > 7);
+                    $counter_highrisk++ if ($score > 6.9);
 
                     if ( $csv )
                     {
