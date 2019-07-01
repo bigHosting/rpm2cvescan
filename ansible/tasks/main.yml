@@ -1,0 +1,49 @@
+---
+
+- name: package deployment
+  package: name="{{item.name}}" state="{{item.state}}"
+  with_items:
+    - "{{ rscan.packages}}"
+
+- name: rscan - make sure group is present
+  group:
+    name: "{{ item.name }}"
+    system: "{{ item.system | default(omit) }}"
+    gid: "{{ item.gid | default(omit) }}"
+    state: present
+  with_items: "{{ rscan.groups }}"
+
+- name: rscan - make sure the user is present
+  user:
+    name: "{{ item.name }}"
+    groups: "{{ ','.join(item.groups) }}"
+    append: "{{ item.append | default(omit) }}"
+    password: "{{ item.pass | default(omit) }}"
+    comment: "{{ item.comment | default(omit) }}"
+    shell: "{{ item.shell | default(omit) }}"
+    uid: "{{ item.uid | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
+    home: "{{ item.home | default(omit) }}"
+    system: "{{ item.system | default(omit) }}"
+    state: present
+  with_items: '{{ rscan.users }}'
+
+
+- name: rscan - mkdir folders
+  file: state=directory path={{ item.name }} owner={{ item.user|default('root') }} group={{ item.group|default('root') }} mode={{item.mode | default('0755') }}
+  with_items: "{{ rscan.folders }}"
+
+- name: rscan - scp templates
+  template: src="templates/{{ item.name + '.j2'}}" dest="/{{ item.name }}" owner={{ item.user|default('root') }} group={{ item.group|default('root') }} mode="{{ item.mode | default('0644') }}"
+  with_items:
+    - "{{ rscan.templates }}"
+
+- name: rscan - scp files
+  copy: src="files/{{ item.name }}" dest="/{{ item.name }}" owner={{ item.user|default('root') }} group={{ item.group|default('root') }} mode="{{ item.mode | default('0644') }}"
+  with_items:
+    - "{{ rscan.files }}"
+
+- name: rscan - ensure services are started
+  service: name="{{ item.name }}" state="{{item.state}}" enabled="{{item.enabled}}"
+  with_items: "{{ rscan.services }}"
+

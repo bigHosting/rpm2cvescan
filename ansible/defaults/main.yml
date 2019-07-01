@@ -1,0 +1,26 @@
+---
+
+rscan:
+
+  packages:
+    - { name: 'perl-XML-Simple'    , state: 'installed'    }
+
+  groups: []
+
+  users: []
+
+  folders:
+    - { name: '/data',               mode: '0755', owner: 'root', group: 'root' }
+    - { name: '/data/rscan',         mode: '0755', owner: 'root', group: 'root' }
+
+  files:
+    - { name: 'data/rscan/download.sh',    mode: '0700' }
+    - { name: 'data/rscan/rscan.pl',       mode: '0700' }
+    - { name: 'data/rscan/rpmvercmp.el6',  mode: '0700' }
+    - { name: 'data/rscan/rpmvercmp.el7',  mode: '0700' }
+    - { name: 'data/rscan/rpmvercmp.el8',  mode: '0700' }
+
+  templates: []
+
+  services: []
+

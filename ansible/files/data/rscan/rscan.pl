@@ -19,7 +19,6 @@
 #
 
 # CHANGELOG:
-#    2019.07.01 - added support for RedHat/CentOS 8
 #    2017.08.01 - added support showing only one package ( --show-only=openssl )
 #    2017.07.07 - added support for el5 & el7
 #    2017.06.12 - added exclude list
