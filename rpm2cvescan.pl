@@ -19,6 +19,7 @@
 #
 
 # CHANGELOG:
+#    2020.01.01 - replaced rpmvercmp binaries with perl-RPM4
 #    2019.07.01 - added support for RedHat/CentOS 8
 #    2017.08.01 - added support showing only one package ( --show-only=openssl )
 #    2017.07.07 - added support for el5 & el7
@@ -48,12 +49,16 @@ use warnings;
 eval { require XML::Simple; };
 if ($@) { die "[*]: $0: ERROR: require module XML::Simple: can't load module $@\n on CentOS: yum install perl-XML-Simple";}
 
+eval { require RPM4; };
+if ($@) { die "[*]: $0: ERROR: require module RPM4: can't load module $@\n on CentOS: yum install perl-RPM4";}
+
 eval { require utf8; };
 if ($@) { die "[*]: $0: ERROR: require module utf8: can't load module $@\n on CentOS: yum install perl-utf8-all";}
 
 
 use XML::Simple;
 use utf8;
+use RPM4;
 #use JSON;
 #use Data::Dumper 'Dumper';
 use Getopt::Long;
@@ -431,10 +436,12 @@ foreach my $pkg ( @packages_installed )
                         # skip if we compare the same version
                         next if ( $pkg_v1 eq $pkg_v2 );
 
-                        my $cmd = sprintf ("./rpmvercmp.%s %s %s '>'", $distro_version, $pkg_v1, $pkg_v2 );
-                        system ($cmd);
-                        #print "Command returned: " . $? . "\n";
-                        if ($? == 256)
+                        #my $cmd = sprintf ("./rpmvercmp.%s %s %s '>'", $distro_version, $pkg_v1, $pkg_v2 );
+                        #system ($cmd);
+                        ##print "Command returned: " . $? . "\n";
+                        #if ($? == 256)
+                        my $cmd = rpmvercmp($pkg_v1, $pkg_v2);
+                        if ( $cmd eq '-1' )
                         {
                                 #print "\n=====  $pkg_v1  (upgrade to $pkg_v2) =====\n";
                                 $counter_pkg++;

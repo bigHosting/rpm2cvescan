@@ -21,13 +21,8 @@ How does this work?
 
 How to run the scanner:
   * install package dependencies using:
-       # yum -y install perl-XML-Simple
-
-  * download rpmvercmp and compile it
-       el5 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cc /usr/lib64/librpm-4.4.so rpmvercm p.o   -o rpmvercmp  ; cp rpmvercmp rpmvercmp.el5 ; cp rpmvercmp.el5 ..; cd ..
-       el6 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp rpmvercmp.el6 ; cp rpmvercmp.el6 ..; cd ..
-       el7 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc    -c -o rpmvercmp.o rpmvercmp.c; cc /usr/lib64/librpm.so.3 rpmvercmp.o -o rpmvercmp.el7; cp rpmvercmp.el7 ..; cd ..
-       el8 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc    -c -o rpmvercmp.o rpmvercmp.c; cc /usr/lib64/librpm.so.8 rpmvercmp.o -o rpmvercmp.el8; cp rpmvercmp.el8 ..; cd ..
+       centos 5,6,7 # yum -y install perl-XML-Simple perl-RPM4
+       centos 8     # dnf -y install perl-XML-Simple perl-RPM4
 
   * download these files to be sure you have the latest revision:
        # /usr/bin/wget -N "https://www.redhat.com/security/data/oval/com.redhat.rhsa-RHEL5.xml"
@@ -81,19 +76,3 @@ VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2016-9147,0,RHSA-2017:0064 RHSA-2017:0063 
 VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3136,0,RHSA-2017:1105 RHSA-2017:1095,20170412,web203c0
 VULN,bind-libs-9.8.2-0.47.rc1.el6,CVE-2017-3137,0,RHSA-2017:1105 RHSA-2017:1095,20170412,web203c0
 [....]
-
-
-TODO:
-
-  * sending rpm package list to a web API using JSON format:
-
-    $ export PACKAGES=$(rpm -qa --queryformat='%{N}-%{epochnum}:%{V}-%{R}\n' | sed 's/^/\"/; s/$/\"/;' | tr '\n' ',' | sed 's/.$//')
-    $ export JSON="{\"os\":\"centos\",\"package\":[ ${PACKAGES} ],\"version\":\"6\"}"
-    $ echo $JSON | /usr/bin/curl -sk -H "Accept: application/json" -X POST -d "@-" "https://my.web.api/v1/"
-
-  * creating the PHP API using Slim2 framework
-
-  * generating a unique URL for each server sending the data
-
-  * creating a web frontend to view each server's vuln data
-

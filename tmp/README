@@ -1,0 +1,10 @@
+rpm2cvescan
+
+  * download rpmvercmp and compile it
+       el5 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cc /usr/lib64/librpm-4.4.so rpmvercm p.o   -o rpmvercmp  ; cp rpmvercmp rpmvercmp.el5 ; cp rpmvercmp.el5 ..; cd ..
+       el6 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; make; cp rpmvercmp rpmvercmp.el6 ; cp rpmvercmp.el6 ..; cd ..
+       el7 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc    -c -o rpmvercmp.o rpmvercmp.c; cc /usr/lib64/librpm.so.3 rpmvercmp.o -o rpmvercmp.el7; cp rpmvercmp.el7 ..; cd ..
+       el8 # git clone https://github.com/basinilya/rpmvercmp ; cd rpmvercmp; cc    -c -o rpmvercmp.o rpmvercmp.c; cc /usr/lib64/librpm.so.8 rpmvercmp.o -o rpmvercmp.el8; cp rpmvercmp.el8 ..; cd ..
+
+  * run the perl program:
+       # perl rpm2cvescan.pl
