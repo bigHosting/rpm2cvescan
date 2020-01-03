@@ -150,7 +150,7 @@ my %supported = (
         'el5' => 'com.redhat.rhsa-RHEL5.xml',
         'el6' => 'com.redhat.rhsa-RHEL6.xml',
         'el7' => 'com.redhat.rhsa-RHEL7.xml',
-        'el8' => 'com.redhat.rhsa-RHEL7.xml',
+        'el8' => 'com.redhat.rhsa-RHEL8.xml',
 );
 
 # running kernel detection
