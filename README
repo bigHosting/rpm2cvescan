@@ -1,5 +1,12 @@
 rpm2cvescan
 
+
+
+This software is not maintained any more, please use this python fork by KoffieNu
+https://github.com/KoffieNu/rpm2cvescan/tree/python
+
+
+
 rpm2cvescan is an RedHat/CentOS 5/6/7/8 rpm cve vulnerability scanner based on
   * RedHat's RPM to CVE mapping:          rpm-to-cve.xml
   * RedHat's OVAL infor for RHEL5,6,7,8:  com.redhat.rhsa-RHEL5.xml, com.redhat.rhsa-RHEL6.xml, com.redhat.rhsa-RHEL7.xml, com.redhat.rhsa-RHEL8.xml
